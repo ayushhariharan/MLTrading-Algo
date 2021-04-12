@@ -26,8 +26,6 @@ def save_tickers():
     return tickers
 
 def fetch_data(num_count, not_first):
-    if not_first:
-        return
     with open("tickers.pickle", 'rb') as f:
         tickers = pickle.load(f)
     if not os.path.exists('stock_details'):
@@ -40,6 +38,13 @@ def fetch_data(num_count, not_first):
 
     st.markdown('### Task Progress')
     st.write('Fetching Data from Yahoo Finance for {} Stocks...'.format(num_count))
+    if not_first:
+        latest_iteration = st.empty()
+        latest_iteration.text(f'Stock {tickers[num_count - 1]} | Iteration {num_count}')
+        bar = st.progress(1.0)
+        st.write('Completed Data Collection')
+        return
+        
     latest_iteration = st.empty()
     bar = st.progress(0)
 
@@ -80,7 +85,7 @@ if session_state.fetch_data:
         "Which Stock to Predict?", tuple(selected_stocks)
     )
 
-    st.write(stock)
+    st.write(f'Chosen Stock for Analysis: {stock}')
 
     if st.sidebar.button("Predict", key="predict"):
         st.write("hello")
