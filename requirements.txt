@@ -2,3 +2,4 @@ nltk
 streamlit
 sklearn
 watchdog
+bs4
