@@ -2,6 +2,7 @@ import bs4 as bs
 import pickle
 import requests
 import streamlit as st
+import SessionState
 import datetime as dt
 import os
 import pandas as pd
@@ -24,7 +25,9 @@ def save_tickers():
     
     return tickers
 
-def fetch_data(num_count):
+def fetch_data(num_count, not_first):
+    if not_first:
+        return
     with open("tickers.pickle", 'rb') as f:
         tickers = pickle.load(f)
     if not os.path.exists('stock_details'):
@@ -56,18 +59,28 @@ def fetch_data(num_count):
                 continue    
         else:
             continue
+
     
     st.write('Completed Data Collection')
 
-save_tickers()
+session_state = SessionState.get(fetch_data=False,predict=False, first_fetch=False)
+tickers = save_tickers()
 count = st.sidebar.selectbox(
-            "How many Stocks to Consider?", [200, 300, 400, 500])
-
-if count is None:
-    count = 200
+            "How many Stocks to Consider?", (200, 300, 400, 500))
 
 if st.sidebar.button("Fetch Data", key="fetch"):
-    fetch_data(count)
+    session_state.fetch_data = True
+
+if session_state.fetch_data:
+    fetch_data(count, session_state.first_fetch)
+    session_state.first_fetch = True
+
+    selected_stocks = tickers[:count].copy()
+    stock = st.sidebar.selectbox(
+        "Which Stock to Predict?", tuple(selected_stocks)
+    )
+
+    st.write(stock)
 
     if st.sidebar.button("Predict", key="predict"):
         st.write("hello")
