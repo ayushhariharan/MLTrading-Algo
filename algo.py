@@ -59,6 +59,25 @@ def tokenize(text):
 
     return lemmatized_tokens
 
+def split(df):
+    train = df[df['date'] < '20150101']
+    test = df[df['date'] > '20141231']
+
+    x_train = train.headlines
+    y_train = train.label
+    x_test = test.headlines
+    y_test = test.label
+
+    return x_train, y_train, x_test, y_test
+
+def Vectorize():
+    pipeline = Pipeline([
+        ('vect', CountVectorizer(tokenizer=tokenize, stop_words = 'english')),
+        ('tfidf', TfidfTransformer()),
+    ])
 
 df = load_data()
 df = create_dataset(df)
+x_train, y_train, x_test, y_test = split(df)
+vector = Vectorize()
+
