@@ -76,8 +76,18 @@ def Vectorize():
         ('tfidf', TfidfTransformer()),
     ])
 
+st.sidebar.title("Stock Prediction with ML")
+
 df = load_data()
 df = create_dataset(df)
 x_train, y_train, x_test, y_test = split(df)
 vector = Vectorize()
 
+st.write("Here's our first attempt at using data to create a table:")
+st.write(df)
+
+option = st.sidebar.selectbox(
+    'Which number do you like best?',
+     df['label'])
+
+'You selected:', option
