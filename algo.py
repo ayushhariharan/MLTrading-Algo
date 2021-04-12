@@ -29,7 +29,7 @@ def load_data():
 
 def create_dataset(dataset):
     dataset = dataset.drop(columns=['Date', 'Label'])
-    dataset.replace("[^a-zA-Z]", " ", regex=True, inplace=True)
+    dataset.replace("[^a-zA-Z]", " ", regex=True, inplace=True) #replaces all spaces and punctuation with a space
 
     for col in dataset.columns:
         dataset[col] = dataset[col].str.lower()
@@ -45,6 +45,20 @@ def create_dataset(dataset):
     df['date'] = data.Date
 
     return df
+
+def tokenize(text):
+    text = re.sub(r'[^\w\s]','',text) #replaces all punctuation/special characters with whitespace
+    tokens = word_tokenize(text)
+    lemmatizer = WordNetLemmatizer()
+
+    lemmatized_tokens = []
+
+    for token in tokens:
+        base_form = lemmatizer.lemmatize(token).lower().strip()
+        lemmatized_tokens.append(base_form)
+
+    return lemmatized_tokens
+
 
 df = load_data()
 df = create_dataset(df)
