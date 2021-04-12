@@ -24,7 +24,27 @@ nltk.download(['punkt', 'wordnet'])
 
 def load_data():
     data = pd.read_csv('./data/Combined_News_DJIA.csv')
+    data.fillna(data.median, inplace=True)
     return data
 
+def create_dataset(dataset):
+    dataset = dataset.drop(columns=['Date', 'Label'])
+    dataset.replace("[^a-zA-Z]", " ", regex=True, inplace=True)
+
+    for col in dataset.columns:
+        dataset[col] = dataset[col].str.lower()
+    
+    headlines = []
+    for row in range(0, len(dataset.index)):
+        headlines.append(' '.join(str(x) for x in dataset.iloc[row]))
+    
+    df = pd.DataFrame(headlines, columns = ['headlines'])
+    data = load_data()
+    
+    df['label'] = data.Label
+    df['date'] = data.Date
+
+    return df
+
 df = load_data()
-print(df)
+df = create_dataset(df)
