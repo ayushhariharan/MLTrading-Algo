@@ -25,6 +25,15 @@ def save_tickers():
     
     return tickers
 
+def write_stock_csv(ticker, start_date, end_date):
+    try:
+        df = web.DataReader(ticker, 'yahoo', start_date, end_date)
+        df.to_csv('stock_details/{}.csv'.format(ticker))
+        return True 
+    except:
+        st.write("Stock {} does not exist".format(ticker))
+        return False 
+
 def fetch_data(num_count, not_first):
     with open("tickers.pickle", 'rb') as f:
         tickers = pickle.load(f)
@@ -56,15 +65,14 @@ def fetch_data(num_count, not_first):
         bar.progress(count / num_count)
 
         if not os.path.exists('stock_details/{}.csv'.format(ticker)):
-            try:
-                df = web.DataReader(ticker, 'yahoo', start_date, end_date)
-                df.to_csv('stock_details/{}.csv'.format(ticker))
-            except:
-                st.write("Stock {} does not exist".format(ticker))
-                continue    
+            if not write_stock_csv(ticker, start_date, end_date):
+                continue
         else:
-            continue
-
+            df = pd.read_csv('stock_details/{}.csv'.format(ticker))
+            last_date = df.iloc[-1]['Date']
+            if not last_date == str(end_date):
+               if not write_stock_csv(tickers, start_date, end_date):
+                   continue
     
     st.write('Completed Data Collection')
 
