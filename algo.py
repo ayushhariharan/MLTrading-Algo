@@ -23,16 +23,7 @@ def save_tickers():
     with open("tickers.pickle", 'wb') as f:
         pickle.dump(tickers, f)
     
-    return tickers
-
-def write_stock_csv(ticker, start_date, end_date):
-    try:
-        df = web.DataReader(ticker, 'yahoo', start_date, end_date)
-        df.to_csv('stock_details/{}.csv'.format(ticker))
-        return True 
-    except:
-        st.write("Stock {} does not exist".format(ticker))
-        return False 
+    return tickers    
 
 def fetch_data(num_count, not_first):
     with open("tickers.pickle", 'rb') as f:
@@ -65,22 +56,26 @@ def fetch_data(num_count, not_first):
         bar.progress(count / num_count)
 
         if not os.path.exists('stock_details/{}.csv'.format(ticker)):
-            if not write_stock_csv(ticker, start_date, end_date):
-                continue
+            try:
+                df = web.DataReader(ticker, 'yahoo', start_date, end_date)
+                df.to_csv('stock_details/{}.csv'.format(ticker))
+            except:
+                st.write("Stock {} does not exist".format(ticker))
         else:
             df = pd.read_csv('stock_details/{}.csv'.format(ticker))
             last_date = df.iloc[-1]['Date']
             if not last_date == str(end_date):
-               if not write_stock_csv(tickers, start_date, end_date):
-                   continue
-    
+                try:
+                    df = web.DataReader(ticker, 'yahoo', start_date, end_date)
+                    df.to_csv('stock_details/{}.csv'.format(ticker))
+                except:
+                    st.write("Stock {} does not exist".format(ticker))    
     st.write('Completed Data Collection')
 
 session_state = SessionState.get(fetch_data=False,predict=False, first_fetch=False)
 tickers = save_tickers()
 count = st.sidebar.selectbox(
             "How many Stocks to Consider?", (200, 300, 400, 500))
-
 if st.sidebar.button("Fetch Data", key="fetch"):
     session_state.fetch_data = True
 
@@ -95,6 +90,6 @@ if session_state.fetch_data:
 
     st.write(f'Chosen Stock for Analysis: {stock}')
 
-    if st.sidebar.button("Predict", key="predict"):
-        st.write("hello")
+#     if st.sidebar.button("Predict", key="predict"):
+#         st.write("hello")
 
