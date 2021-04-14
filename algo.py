@@ -125,8 +125,36 @@ def generate_features(selected_stock, visualizations):
         our_df.plot(kind='line', y = 'Moving_av', ax = ax)
         st.pyplot(fig)
     
+    i = 1
+    vol_rate_increase = [0]
+    price_rate_increase = [0]
+
+    while i < len(our_df):
+        vol_rate_increase.append(our_df.iloc[i]['Volume'] - our_df.iloc[i - 1]['Volume'])
+        price_rate_increase.append(our_df.iloc[i]['Adj Close'] - our_df.iloc[i - 1]['Adj Close'])
+        i += 1
     
-    return our_df
+    our_df['Increase_in_vol'] = vol_rate_increase
+    our_df['Increase_in_adj_close'] = price_rate_increase
+
+    if "Volume/Price Flux" in visualizations:
+        st.markdown("*Volume Flux Plot*")
+        fig, ax = plt.subplots()
+        our_df.plot(kind='line', y = 'Increase_in_vol', ax = ax)
+        st.pyplot(fig)
+
+        st.markdown('*Price Flux Plot*')
+        fig2, ax2 = plt.subplots()
+        our_df.plot(kind='line', y = 'Increase_in_adj_close', ax = ax2)
+        st.pyplot(fig2)
+
+    temp_our_df = our_df.reset_index()
+    temp_main_df = main_df.reset_index(drop = True)
+
+    feature_df = pd.concat([temp_our_df, temp_main_df], axis = 1)
+    feature_df.set_index('Date', inplace=True)
+
+    return feature_df
 
 
 
@@ -149,7 +177,7 @@ if session_state.fetch_data:
 
     st.write(f'Chosen Stock for Analysis: {stock}')
     
-    visualizations = st.sidebar.multiselect("Select Visualizations", ["Candlestick", "Moving Average", "Volume Flux", "Price Flux"])
+    visualizations = st.sidebar.multiselect("Select Visualizations", ["Candlestick", "Moving Average", "Volume/Price Flux"])
     if st.sidebar.button("Generate Feature Set", key="feature"):
         session_state.feature = True
 
