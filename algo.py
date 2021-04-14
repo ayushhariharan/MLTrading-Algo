@@ -9,6 +9,11 @@ import pandas as pd
 import pandas_datareader.data as web
 import time 
 
+import matplotlib.pyplot as plt
+from matplotlib import style
+from mpl_finance import candlestick_ohlc
+import matplotlib.dates as mdates
+
 st.sidebar.title("Stock Market Prediction with Machine Learning")
 def save_tickers():
     resp = requests.get("https://en.wikipedia.org/wiki/List_of_S%26P_500_companies")
@@ -72,7 +77,53 @@ def fetch_data(num_count, not_first):
                     st.write("Stock {} does not exist".format(ticker))    
     st.write('Completed Data Collection')
 
-session_state = SessionState.get(fetch_data=False,predict=False, first_fetch=False)
+def generate_features(selected_stock, visualizations):
+    with open("tickers.pickle", 'rb') as f:
+        tickers = pickle.load(f)
+    if not os.path.exists('datasets'):
+        os.makedirs('datasets')
+    
+    main_df = pd.DataFrame()
+
+    for count, ticker in enumerate(tickers):
+        csv_path = "stock_details/{}.csv".format(ticker)
+        if selected_stock in ticker:
+            continue
+        if not os.path.exists(csv_path):
+            continue
+        stock_df = pd.read_csv(csv_path)
+        stock_df.set_index('Date', inplace=True)
+
+        stock_df.rename(columns={'Adj Close': ticker}, inplace=True)
+        stock_df.drop(['Open','High','Low',"Close",'Volume'],axis=1,inplace=True)
+
+        if main_df.empty:
+            main_df = stock_df
+        else:
+            main_df = main_df.join(stock_df, how = 'outer')
+
+    our_df = pd.read_csv(f'stock_details/{selected_stock}.csv', index_col=0,parse_dates=True)
+    if "Candlestick" in visualizations:
+        st.markdown("*Candlestick Visualization Plot*")
+        our_df_ohlc = our_df['Adj Close'].resample('10D').ohlc()
+        our_df_volume = our_df['Volume'].resample('10D').sum()
+        our_df_ohlc.reset_index(inplace=True)
+        our_df_ohlc['Date'] = our_df_ohlc['Date'].map(mdates.date2num)
+
+        ax1 = plt.subplot2grid((6, 1), (0, 0), rowspan=5, colspan=1) 
+        ax2 = plt.subplot2grid((6, 1), (5, 0), rowspan=5, colspan=1, sharex=ax1)  
+
+        candlestick_ohlc(ax1, our_df_ohlc.values, width=2, colorup='g')
+        ax2.fill_between(our_df_volume.index.map(mdates.date2num), our_df_volume.values, 0)
+
+        st.pyplot(plt.gcf())
+    
+    return our_df
+
+
+
+
+session_state = SessionState.get(fetch_data=False,predict=False, feature=False, first_fetch=False)
 tickers = save_tickers()
 count = st.sidebar.selectbox(
             "How many Stocks to Consider?", (200, 300, 400, 500))
@@ -89,7 +140,11 @@ if session_state.fetch_data:
     )
 
     st.write(f'Chosen Stock for Analysis: {stock}')
+    
+    visualizations = st.sidebar.multiselect("Select Visualizations", ["Candlestick", "Moving Average", "Volume Flux", "Price Flux"])
+    if st.sidebar.button("Generate Feature Set", key="feature"):
+        session_state.feature = True
 
-#     if st.sidebar.button("Predict", key="predict"):
-#         st.write("hello")
-
+    if session_state.feature:
+        other_stock_data = generate_features(stock, visualizations)
+        st.write(other_stock_data)
