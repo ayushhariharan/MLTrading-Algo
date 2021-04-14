@@ -80,8 +80,6 @@ def fetch_data(num_count, not_first):
 def generate_features(selected_stock, visualizations):
     with open("tickers.pickle", 'rb') as f:
         tickers = pickle.load(f)
-    if not os.path.exists('datasets'):
-        os.makedirs('datasets')
     
     main_df = pd.DataFrame()
 
@@ -103,8 +101,9 @@ def generate_features(selected_stock, visualizations):
             main_df = main_df.join(stock_df, how = 'outer')
 
     our_df = pd.read_csv(f'stock_details/{selected_stock}.csv', index_col=0,parse_dates=True)
+    
     if "Candlestick" in visualizations:
-        st.markdown("*Candlestick Visualization Plot*")
+        st.markdown("*Candlestick Plot*")
         our_df_ohlc = our_df['Adj Close'].resample('10D').ohlc()
         our_df_volume = our_df['Volume'].resample('10D').sum()
         our_df_ohlc.reset_index(inplace=True)
@@ -117,6 +116,15 @@ def generate_features(selected_stock, visualizations):
         ax2.fill_between(our_df_volume.index.map(mdates.date2num), our_df_volume.values, 0)
 
         st.pyplot(plt.gcf())
+    
+    our_df['Moving_av'] = our_df['Adj Close'].rolling(window=50, min_periods=0).mean()
+
+    if "Moving Average" in visualizations:
+        st.markdown("*Moving Average Plot*")
+        fig, ax = plt.subplots()
+        our_df.plot(kind='line', y = 'Moving_av', ax = ax)
+        st.pyplot(fig)
+    
     
     return our_df
 
@@ -146,5 +154,6 @@ if session_state.fetch_data:
         session_state.feature = True
 
     if session_state.feature:
-        other_stock_data = generate_features(stock, visualizations)
-        st.write(other_stock_data)
+        features = generate_features(stock, visualizations)
+        st.write("*Important Stock Features*")
+        st.write(features.head())
