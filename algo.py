@@ -2,7 +2,7 @@ import bs4 as bs
 import pickle
 import requests
 import streamlit as st
-import SessionState
+import algorithm.SessionState
 import datetime as dt
 import os
 import pandas as pd
