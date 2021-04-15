@@ -156,10 +156,11 @@ def generate_features(selected_stock, visualizations):
 
     return feature_df
 
+def generate_linear_model():
+    st.write("hello")
 
 
-
-session_state = SessionState.get(fetch_data=False,predict=False, feature=False, first_fetch=False)
+session_state = SessionState.get(fetch_data=False,predict=False, feature=False, model_gen=False, first_fetch=False)
 tickers = save_tickers()
 count = st.sidebar.selectbox(
             "How many Stocks to Consider?", (200, 300, 400, 500))
@@ -185,3 +186,11 @@ if session_state.fetch_data:
         features = generate_features(stock, visualizations)
         st.write("*Important Stock Features*")
         st.write(features.head())
+
+        models = st.sidebar.multiselect("Select Models", ["Linear Regression"])
+        if st.sidebar.button("Train Model", key = "model"):
+            session_state.model_gen = True
+
+            if session_state.model_gen:
+                if "Linear Regression" in models:
+                    generate_linear_model()
