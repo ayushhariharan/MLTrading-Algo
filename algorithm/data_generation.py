@@ -2,14 +2,11 @@ import bs4 as bs
 import pickle
 import requests
 import streamlit as st
-from algorithm.SessionState import *
 import datetime as dt
 import os
 import pandas as pd
 import pandas_datareader.data as web
 import time 
-
-from algorithm.data_generation import *
 
 import matplotlib.pyplot as plt
 from matplotlib import style
