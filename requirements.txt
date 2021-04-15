@@ -3,3 +3,4 @@ streamlit
 sklearn
 watchdog
 bs4
+tensorflow

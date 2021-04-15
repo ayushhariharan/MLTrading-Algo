@@ -14,6 +14,16 @@ from matplotlib import style
 from mpl_finance import candlestick_ohlc
 import matplotlib.dates as mdates
 
+from tensorflow.keras.callbacks import ModelCheckpoint
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Activation, Flatten
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error 
+from sklearn.metrics import accuracy_score
+from tensorflow.keras.wrappers.scikit_learn import KerasRegressor
+import tensorflow as tf
+
 st.sidebar.title("Stock Market Prediction with Machine Learning")
 def save_tickers():
     resp = requests.get("https://en.wikipedia.org/wiki/List_of_S%26P_500_companies")
@@ -99,11 +109,13 @@ def generate_features(selected_stock, visualizations):
             main_df = stock_df
         else:
             main_df = main_df.join(stock_df, how = 'outer')
-
-    our_df = pd.read_csv(f'stock_details/{selected_stock}.csv', index_col=0,parse_dates=True)
     
+    df = pd.read_csv(f'stock_details/{selected_stock}.csv')
+    df.set_index('Date', inplace=True)    
+
     if "Candlestick" in visualizations:
         st.markdown("*Candlestick Plot*")
+        our_df = pd.read_csv(f'stock_details/{selected_stock}.csv', index_col=0,parse_dates=True)
         our_df_ohlc = our_df['Adj Close'].resample('10D').ohlc()
         our_df_volume = our_df['Volume'].resample('10D').sum()
         our_df_ohlc.reset_index(inplace=True)
@@ -117,30 +129,30 @@ def generate_features(selected_stock, visualizations):
 
         st.pyplot(plt.gcf())
     
-    our_df['Moving_av'] = our_df['Adj Close'].rolling(window=50, min_periods=0).mean()
+    df['Moving_av'] = df['Adj Close'].rolling(window=50, min_periods=0).mean()
 
     if "Moving Average" in visualizations:
         st.markdown("*Moving Average Plot*")
         fig, ax = plt.subplots()
-        our_df.plot(kind='line', y = 'Moving_av', ax = ax)
+        df.plot(kind='line', y = 'Moving_av', ax = ax)
         st.pyplot(fig)
     
     i = 1
     vol_rate_increase = [0]
     price_rate_increase = [0]
 
-    while i < len(our_df):
-        vol_rate_increase.append(our_df.iloc[i]['Volume'] - our_df.iloc[i - 1]['Volume'])
-        price_rate_increase.append(our_df.iloc[i]['Adj Close'] - our_df.iloc[i - 1]['Adj Close'])
+    while i < len(df):
+        vol_rate_increase.append(df.iloc[i]['Volume'] - df.iloc[i - 1]['Volume'])
+        price_rate_increase.append(df.iloc[i]['Adj Close'] - df.iloc[i - 1]['Adj Close'])
         i += 1
     
-    our_df['Increase_in_vol'] = vol_rate_increase
-    our_df['Increase_in_adj_close'] = price_rate_increase
+    df['Increase_in_vol'] = vol_rate_increase
+    df['Increase_in_adj_close'] = price_rate_increase
 
     if "Volume/Price Flux" in visualizations:
         st.markdown("*Volume Flux Plot*")
         fig, ax = plt.subplots()
-        our_df.plot(kind='line', y = 'Increase_in_vol', ax = ax)
+        df.plot(kind='line', y = 'Increase_in_vol', ax = ax)
         st.pyplot(fig)
 
         st.markdown('*Price Flux Plot*')
@@ -148,17 +160,46 @@ def generate_features(selected_stock, visualizations):
         our_df.plot(kind='line', y = 'Increase_in_adj_close', ax = ax2)
         st.pyplot(fig2)
 
-    temp_our_df = our_df.reset_index()
-    temp_main_df = main_df.reset_index(drop = True)
-
-    feature_df = pd.concat([temp_our_df, temp_main_df], axis = 1)
-    feature_df.set_index('Date', inplace=True)
-
+    feature_df å= df.join(main_df,how='outer')
+    feature_df.fillna(0.0, inplace=True)
+    feature_df.reset_index(inplace=True)
+    
     return feature_df
 
-def generate_linear_model():
-    st.write("hello")
+def generate_linear_model(feature_df, epochs):
+    X_train, X_test, y_train, y_test = split_data_linear(feature_df)
+    
+    regressor = KerasRegressor(build_fn=linear_model, batch_size=16,epochs=epochs)
+    callback = tf.keras.callbacks.ModelCheckpoint(filepath='checkpoints/Regressor_model.h5', monitor='mean_absolute_error',  
+                verbose=0, save_best_only=True, save_weights_only=False, mode='auto')
 
+    results = regressor.fit(X_train,y_train,callbacks=[callback])
+
+def linear_model():
+    mod=Sequential()
+    mod.add(Dense(32, kernel_initializer='normal',input_dim = 200, activation='relu'))
+    mod.add(Dense(64, kernel_initializer='normal',activation='relu'))
+    mod.add(Dense(128, kernel_initializer='normal',activation='relu'))
+    mod.add(Dense(256, kernel_initializer='normal',activation='relu'))
+    mod.add(Dense(4, kernel_initializer='normal',activation='linear'))
+    
+    mod.compile(loss='mean_absolute_error', optimizer='adam', metrics=['accuracy','mean_absolute_error'])
+    mod.summary()
+    
+    return mod
+
+def split_data_linear(feature_df):
+    y_df = feature_df[['High', 'Low', 'Open', 'Close', 'Volume', 'Adj Close']]
+    y_df_mod = y_df.drop(['Volume', 'Adj Close'], axis=1)
+    y = y_df_mod.values
+
+    dropped_columns = y_df.columns.tolist()
+    dropped_columns.append('Date')
+
+    X_df = feature_df.drop(dropped_columns, axis = 1)
+    X = X_df.values
+    
+    return train_test_split(X, y, test_size=0.3)
 
 session_state = SessionState.get(fetch_data=False,predict=False, feature=False, model_gen=False, first_fetch=False)
 tickers = save_tickers()
@@ -188,9 +229,10 @@ if session_state.fetch_data:
         st.write(features.head())
 
         models = st.sidebar.multiselect("Select Models", ["Linear Regression"])
+        epochs = st.sidebar.number_input('Number of Epochs')
         if st.sidebar.button("Train Model", key = "model"):
             session_state.model_gen = True
 
             if session_state.model_gen:
                 if "Linear Regression" in models:
-                    generate_linear_model()
+                    generate_linear_model(features, epochs)
