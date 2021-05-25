@@ -7,6 +7,7 @@ import os
 import pandas as pd
 import pandas_datareader.data as web
 import time 
+import matplotlib.pyplot as plt
 
 from tensorflow.keras.callbacks import ModelCheckpoint
 from tensorflow.keras.models import Sequential
@@ -18,15 +19,33 @@ from sklearn.metrics import accuracy_score
 from tensorflow.keras.wrappers.scikit_learn import KerasRegressor
 import tensorflow as tf
 
-def generate_linear_model(feature_df, epochs):
-    X_train, X_test, y_train, y_test = split_data_linear(feature_df)
-    
+def generate_linear_model(feature_df, epochs, already_trained):
+    X_train, X_test, y_train, y_test = split_data_linear(feature_df)    
     regressor = KerasRegressor(build_fn=linear_model, batch_size=16,epochs=epochs)
-    callback = tf.keras.callbacks.ModelCheckpoint(filepath='checkpoints/Regressor_model.h5', monitor='mean_absolute_error',  
+    if already_trained:
+        regressor.load_weights('checkpoints/Regressor_model.h5')  
+    else:
+        callback = tf.keras.callbacks.ModelCheckpoint(filepath='checkpoints/Regressor_model.h5', monitor='mean_absolute_error',  
                 verbose=0, save_best_only=True, save_weights_only=False, mode='auto')
 
-    results = regressor.fit(X_train,y_train,callbacks=[callback])
+        results = regressor.fit(X_train,y_train,callbacks=[callback])
+    y_pred = regressor.predict(X_test)
 
+    st.markdown("*Linear Regression*")
+
+    fig, ax = plt.subplots()
+    plt.figure(figsize=(20,10))
+    plt.plot(y_test[:32], color = 'green', label = 'Real Stock')
+    plt.plot(y_pred[:32], color = 'red', label = 'Predicted Stock Price')
+    plt.title('Stock Price Prediction')
+    plt.xlabel('Trading Day')
+    plt.ylabel('Stock Price')
+    plt.legend()
+    plt.show()
+
+    st.pyplot(plt.gcf())
+    return y_pred
+    
 def linear_model():
     mod=Sequential()
     mod.add(Dense(32, kernel_initializer='normal',input_dim = 200, activation='relu'))

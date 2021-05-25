@@ -40,9 +40,11 @@ if session_state.fetch_data:
 
         models = st.sidebar.multiselect("Select Models", ["Linear Regression"])
         epochs = st.sidebar.number_input('Number of Epochs')
+        already_trained = st.sidebar.checkbox("Already Trained?")
+        
         if st.sidebar.button("Train Model", key = "model"):
             session_state.model_gen = True
 
             if session_state.model_gen:
                 if "Linear Regression" in models:
-                    generate_linear_model(features, epochs)
+                    generate_linear_model(features, int(epochs), already_trained)
