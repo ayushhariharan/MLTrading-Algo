@@ -19,17 +19,21 @@ from sklearn.metrics import accuracy_score
 from tensorflow.keras.wrappers.scikit_learn import KerasRegressor
 import tensorflow as tf
 
-def generate_linear_model(feature_df, epochs, already_trained):
-    X_train, X_test, y_train, y_test = split_data_linear(feature_df)    
-    regressor = KerasRegressor(build_fn=linear_model, batch_size=16,epochs=epochs)
-    if already_trained:
-        regressor.load_weights('checkpoints/Regressor_model.h5')  
-    else:
-        callback = tf.keras.callbacks.ModelCheckpoint(filepath='checkpoints/Regressor_model.h5', monitor='mean_absolute_error',  
-                verbose=0, save_best_only=True, save_weights_only=False, mode='auto')
+def generate_RNN_model(feature_df, epochs, already_trained):
+    print("hello")
 
-        results = regressor.fit(X_train,y_train,callbacks=[callback])
-    y_pred = regressor.predict(X_test)
+def generate_linear_model(feature_df, epochs, already_trained, y_pred, y_test):
+    if len(y_pred) == 0:    
+        X_train, X_test, y_train, y_test = split_data_linear(feature_df)
+        regressor = KerasRegressor(build_fn=linear_model, batch_size=16,epochs=epochs)
+        if already_trained:
+            regressor.load_weights('checkpoints/Regressor_model.h5')  
+        else:
+            callback = tf.keras.callbacks.ModelCheckpoint(filepath='checkpoints/Regressor_model.h5', monitor='mean_absolute_error',  
+                    verbose=0, save_best_only=True, save_weights_only=False, mode='auto')
+
+            results = regressor.fit(X_train,y_train,callbacks=[callback])
+        y_pred = regressor.predict(X_test)
 
     st.markdown("*Linear Regression*")
 
@@ -44,7 +48,7 @@ def generate_linear_model(feature_df, epochs, already_trained):
     plt.show()
 
     st.pyplot(plt.gcf())
-    return y_pred
+    return y_pred, y_test
     
 def linear_model():
     mod=Sequential()

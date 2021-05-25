@@ -11,7 +11,7 @@ from algorithm.linear_model import *
 st.sidebar.title("Stock Market Prediction with Machine Learning")
 
 
-session_state = SessionState.get(fetch_data=False,predict=False, feature=False, model_gen=False, first_fetch=False)
+session_state = SessionState.get(fetch_data=False,predict=False, feature=False, model_gen=False, first_fetch=False, y_pred_lin = [], y_test_lin = [])
 tickers = save_tickers()
 count = st.sidebar.selectbox(
             "How many Stocks to Consider?", (200, 300, 400, 500))
@@ -38,7 +38,7 @@ if session_state.fetch_data:
         st.write("*Important Stock Features*")
         st.write(features.head())
 
-        models = st.sidebar.multiselect("Select Models", ["Linear Regression"])
+        models = st.sidebar.multiselect("Select Models", ["Linear Regression", "RNN"])
         epochs = st.sidebar.number_input('Number of Epochs')
         already_trained = st.sidebar.checkbox("Already Trained?")
         
@@ -47,4 +47,8 @@ if session_state.fetch_data:
 
             if session_state.model_gen:
                 if "Linear Regression" in models:
-                    generate_linear_model(features, int(epochs), already_trained)
+                    y_pred, y_test = generate_linear_model(features, int(epochs), already_trained, session_state.y_pred_lin, session_state.y_test_lin)
+                    session_state.y_pred_lin = y_pred
+                    session_state.y_test_lin = y_test
+                if "RNN" in models:
+                    generate_RNN_model(features, int(epochs), already_trained)
