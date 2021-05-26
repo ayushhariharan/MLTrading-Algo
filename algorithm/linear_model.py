@@ -30,28 +30,70 @@ from tensorflow.keras.layers import Dense
 from tensorflow.keras.layers import LSTM
 from tensorflow.keras.layers import Dropout
 
-def generate_RNN_model(feature_df, epochs, already_trained):
-    df_train, df_test = split_data_RNN(feature_df)
+def generate_RNN_model(feature_df, epochs, already_trained, target_set_test, predicted_stock_price):
+    if len(predicted_stock_price) == 0:
+        df_train, df_test = split_data_RNN(feature_df)
 
-    sc = MinMaxScaler(feature_range = (0, 1))
+        sc = MinMaxScaler(feature_range = (0, 1))
 
-    df_target = df_train[['High','Low','Open','Close']]
-    target_set = df_target.values
-    train_set = df_train.values
+        df_target = df_train[['High','Low','Open','Close']]
+        target_set = df_target.values
+        train_set = df_train.values
 
-    training_set_scaled = sc.fit_transform(train_set)
-    target_set_scaled = sc.fit_transform(target_set)
+        training_set_scaled = sc.fit_transform(train_set)
+        target_set_scaled = sc.fit_transform(target_set)
 
-    X_train = []
-    y_train = []
-    for i in range(50,len(train_set)):
-        X_train.append(training_set_scaled[i-50:i,:])
-        y_train.append(target_set_scaled[i,:])
-    
-    X_train, y_train = np.array(X_train), np.array(y_train)
+        X_train = []
+        y_train = []
+        for i in range(50,len(train_set)):
+            X_train.append(training_set_scaled[i-50:i,:])
+            y_train.append(target_set_scaled[i,:])
+        
+        X_train, y_train = np.array(X_train), np.array(y_train)
 
-    model = rnn_model(X_train.shape[1])
+        model = rnn_model(X_train.shape[1])
 
+        if already_trained:
+            model.load_weights('checkpoints/RNN_model.h5')
+        else:
+            callback=tf.keras.callbacks.ModelCheckpoint(filepath='./checkpoints/RNN_model.h5', monitor='mean_squared_error', verbose=0, save_best_only=True,
+                save_weights_only=False, mode='auto', save_freq='epoch')
+
+            model.fit(X_train, y_train, epochs = epochs, batch_size = 32, callbacks=[callback])
+        
+        df_target_test = df_test[['High','Low','Open','Close']]
+        target_set_test = df_target_test.values
+        test_set = df_test.values
+
+        testing_set_scaled = sc.fit_transform(test_set)
+        target_test_set_scaled = sc.fit_transform(target_set_test)
+
+        X_test = []
+        y_test = []
+        for i in range(50,len(test_set)):
+            X_test.append(testing_set_scaled[i-50:i,:])
+            y_test.append(target_test_set_scaled[i,:])
+        
+        X_test, y_test = np.array(X_test), np.array(y_test)
+
+        predicted_stock_price = model.predict(X_test)
+        predicted_stock_price = sc.inverse_transform(predicted_stock_price)
+
+    st.markdown("*RNN Model*")
+
+    fig, ax = plt.subplots()
+    plt.figure(figsize=(20,10))
+    plt.plot(target_set_test, color = 'green', label = 'Real Stock')
+    plt.plot(predicted_stock_price, color = 'red', label = 'Predicted Stock Price')
+    plt.title('Stock Price Prediction')
+    plt.xlabel('Trading Day')
+    plt.ylabel('Stock Price')
+    plt.legend()
+    plt.show()
+
+    st.pyplot(plt.gcf())
+
+    return target_set_test, predicted_stock_price
 
 
 
