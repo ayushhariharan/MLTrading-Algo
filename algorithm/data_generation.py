@@ -23,6 +23,11 @@ from sklearn.metrics import accuracy_score
 from tensorflow.keras.wrappers.scikit_learn import KerasRegressor
 import tensorflow as tf
 
+import yfinance as yf
+yf.pdr_override()
+
+
+
 def save_tickers():
     resp = requests.get("https://en.wikipedia.org/wiki/List_of_S%26P_500_companies")
     soup = bs.BeautifulSoup(resp.text)
@@ -48,6 +53,7 @@ def fetch_data(num_count, not_first):
     yesterday = dt.date.today() - dt.timedelta(days=1)
     end_date = yesterday - dt.timedelta(days=yesterday.weekday())
     count = 0
+    num_missed = 0
 
     st.markdown('### Task Progress')
     st.write('Fetching Data from Yahoo Finance for {} Stocks...'.format(num_count))
@@ -70,16 +76,17 @@ def fetch_data(num_count, not_first):
 
         if not os.path.exists('stock_details/{}.csv'.format(ticker)):
             try:
-                df = web.DataReader(ticker, 'yahoo', start_date, end_date)
+                df = web.get_data_yahoo(ticker, start_date, end_date)
                 df.to_csv('stock_details/{}.csv'.format(ticker))
             except:
                 st.write("Stock {} does not exist".format(ticker))
+            
         else:
             df = pd.read_csv('stock_details/{}.csv'.format(ticker))
             last_date = df.iloc[-1]['Date']
             if not last_date == str(end_date):
                 try:
-                    df = web.DataReader(ticker, 'yahoo', start_date, end_date)
+                    df = web.get_data_yahoo(ticker, start_date, end_date)
                     df.to_csv('stock_details/{}.csv'.format(ticker))
                 except:
                     st.write("Stock {} does not exist".format(ticker))    

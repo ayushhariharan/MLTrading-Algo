@@ -155,7 +155,6 @@ def linear_model():
 
 def split_data_RNN(feature_df):
     df_main = feature_df[['High', 'Low', 'Open', 'Close', 'Volume', 'Adj Close', 'Moving_av', 'Increase_in_vol', 'Increase_in_adj_close']]
-    st.write(len(df_main))
 
     train_split = int(0.83 * len(df_main))
     df_train = df_main[:train_split]
