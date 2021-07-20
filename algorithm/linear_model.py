@@ -32,14 +32,14 @@ from tensorflow.keras.layers import Dropout
 
 def custom_model(model_layers):
     mod = Sequential()
-    for layer in model_layers:
+    for i, layer in enumerate(model_layers):
+        print(i)
         mod.add(layer)
-    
     mod.compile(loss='mean_squared_error', optimizer='adam', metrics=['accuracy','mean_squared_error'])
     mod.summary()
     return mod
 
-def generate_custom_model(feature_df, model_layers, is_rnn, epochs, timesteps, model_name):
+def generate_custom_model(feature_df, model_layers, num_layers, is_rnn, epochs, timesteps, model_name):
     if is_rnn:
         df_train, df_test = split_data_RNN(feature_df)
         sc = MinMaxScaler(feature_range = (0, 1))
@@ -62,22 +62,23 @@ def generate_custom_model(feature_df, model_layers, is_rnn, epochs, timesteps, m
         
         X_test, y_test = generate_RNN_data(test_set, testing_set_scaled, target_test_set_scaled, timesteps)
 
-        model_layers.insert(0, LSTM(units=64, return_sequences=True, input_shape=(X_train.shape[1], 9)))
-        model_layers.append(BatchNormalization())
+        if len(model_layers) == num_layers:
+            model_layers.insert(0, LSTM(units=64, return_sequences=True, input_shape=(X_train.shape[1], 9), name = "LSTMInitial"))
+            model_layers.append(BatchNormalization())
+            model_layers.append(Dense(4, kernel_initializer='normal',activation='relu', name = "denseFinal"))
 
         batch_size = 32
     else:
         X_train, X_test, y_train, y_test = split_data_linear(feature_df) 
 
-        model_layers.insert(0, Dense(32, kernel_initializer='normal',input_dim = 202, activation='relu'))
-
+        if len(model_layers) == num_layers:
+            model_layers.insert(0, Dense(32, kernel_initializer='normal',input_dim = 202, activation='relu', name = "denseInitial"))
+            model_layers.append(Dense(4, kernel_initializer='normal',activation='relu', name = "denseFinal"))
         batch_size = 16
-
-    model_layers.append(Dense(4, kernel_initializer='normal',activation='relu'))
 
     model = custom_model(model_layers)
 
-    callback=tf.keras.callbacks.ModelCheckpoint(filepath='./checkpoints/{}}.h5'.format(model_name), monitor='mean_squared_error', verbose=0, save_best_only=True,
+    callback=tf.keras.callbacks.ModelCheckpoint(filepath='./checkpoints/{}.h5'.format(model_name), monitor='mean_squared_error', verbose=0, save_best_only=True,
                 save_weights_only=False, mode='auto', save_freq='epoch')
 
     model.fit(X_train, y_train, epochs = epochs, batch_size = batch_size, callbacks=[callback])

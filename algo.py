@@ -48,7 +48,9 @@ if session_state.fetch_data:
         timesteps = 0
 
         if "Custom Model" in models:
-            ss2.layers = []
+            if st.sidebar.button("Clear Layers"):
+                ss2.layers = []
+
             model_name = st.sidebar.text_input("Model Name")
             is_rnn = st.sidebar.checkbox("RNN Model?")
 
@@ -68,17 +70,21 @@ if session_state.fetch_data:
                 if layer_type == "Dense":
                     activation = st.sidebar.selectbox("Activation Function", ['relu', 'tanh', 'linear'])
                     units = st.sidebar.number_input("Number of Units")
-                    layer = Dense(units, activation=activation, kernel_initializer='normal')
                 if layer_type == "Dropout":
                     percentage = st.sidebar.number_input("Dropout Rate")
-                    layer = Dropout(percentage)
-                if layer_type == "BatchNormalization":
-                    layer = BatchNormalization()
                 if layer_type == "LSTM":
                     units = st.sidebar.number_input("Number of Units")
-                    layer = LSTM(units = units)
-
+                
                 if st.sidebar.button("Add Layer"):
+                    if layer_type == "Dense":
+                        layer = Dense(units, activation=activation, kernel_initializer='normal', name = f'dense{len(ss2.layers)}')
+                    if layer_type == "Dropout":
+                        layer = Dropout(percentage, name = f'dropout{len(ss2.layers)}')
+                    if layer_type == "BatchNormalization":
+                        layer = BatchNormalization(name = f'normal{len(ss2.layers)}')
+                    if layer_type == "LSTM":
+                        layer = LSTM(units = units, name = f'LSTM{len(ss2.layers)}')
+
                     ss2.layers.append(layer)
             else:
                 epochs = st.sidebar.number_input('Number of Epochs')
@@ -86,8 +92,6 @@ if session_state.fetch_data:
             already_trained = st.sidebar.checkbox("Already Trained?")
             epochs = st.sidebar.number_input('Number of Epochs')
      
-        st.write(ss2.layers)
-
         if st.sidebar.button("Train Model", key = "model"):
             session_state.model_gen = True
 
@@ -99,4 +103,4 @@ if session_state.fetch_data:
                 if "RNN" in models:
                     y_test, y_pred = generate_RNN_model(features, int(epochs), already_trained, [], [])
                 if "Custom Model" in models:
-                    y_test, y_pred = generate_custom_model(features, ss2.layers, is_rnn, int(epochs), timesteps, model_name)
+                    y_test, y_pred = generate_custom_model(features, ss2.layers, ss2.num_layers, is_rnn,int(epochs), timesteps, model_name)
