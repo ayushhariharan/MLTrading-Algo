@@ -45,6 +45,8 @@ if session_state.fetch_data:
         models = st.sidebar.selectbox("Select Models", ["Linear Regression", "RNN", "Custom Model"])
         st.sidebar.subheader("Model Architecture")
 
+        timesteps = 0
+
         if "Custom Model" in models:
             ss2.layers = []
             model_name = st.sidebar.text_input("Model Name")
@@ -53,6 +55,7 @@ if session_state.fetch_data:
             layer_types = ["Dense", "Dropout", "BatchNormalization"]
 
             if is_rnn:
+                timesteps = st.sidebar.number_input("Number of Timesteps")
                 layer_types.append("LSTM")
 
             ss2.num_layers = st.sidebar.number_input("Number of Layers")
@@ -95,3 +98,5 @@ if session_state.fetch_data:
                     session_state.y_test_lin = y_test
                 if "RNN" in models:
                     y_test, y_pred = generate_RNN_model(features, int(epochs), already_trained, [], [])
+                if "Custom Model" in models:
+                    y_test, y_pred = generate_custom_model(features, ss2.layers, is_rnn, int(epochs), timesteps, model_name)

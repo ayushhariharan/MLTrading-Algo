@@ -30,6 +30,92 @@ from tensorflow.keras.layers import Dense
 from tensorflow.keras.layers import LSTM
 from tensorflow.keras.layers import Dropout
 
+def custom_model(model_layers):
+    mod = Sequential()
+    for layer in model_layers:
+        mod.add(layer)
+    
+    mod.compile(loss='mean_squared_error', optimizer='adam', metrics=['accuracy','mean_squared_error'])
+    mod.summary()
+    return mod
+
+def generate_custom_model(feature_df, model_layers, is_rnn, epochs, timesteps, model_name):
+    if is_rnn:
+        df_train, df_test = split_data_RNN(feature_df)
+        sc = MinMaxScaler(feature_range = (0, 1))
+
+        df_target = df_train[['High','Low','Open','Close']]
+        target_set = df_target.values
+        train_set = df_train.values
+
+        training_set_scaled = sc.fit_transform(train_set)
+        target_set_scaled = sc.fit_transform(target_set)
+        
+        X_train, y_train = generate_RNN_data(train_set, training_set_scaled, target_set_scaled, timesteps)
+
+        df_target_test = df_test[['High','Low','Open','Close']]
+        target_set_test = df_target_test.values
+        test_set = df_test.values
+
+        testing_set_scaled = sc.fit_transform(test_set)
+        target_test_set_scaled = sc.fit_transform(target_set_test)
+        
+        X_test, y_test = generate_RNN_data(test_set, testing_set_scaled, target_test_set_scaled, timesteps)
+
+        model_layers.insert(0, LSTM(units=64, return_sequences=True, input_shape=(X_train.shape[1], 9)))
+        model_layers.append(BatchNormalization())
+
+        batch_size = 32
+    else:
+        X_train, X_test, y_train, y_test = split_data_linear(feature_df) 
+
+        model_layers.insert(0, Dense(32, kernel_initializer='normal',input_dim = 202, activation='relu'))
+
+        batch_size = 16
+
+    model_layers.append(Dense(4, kernel_initializer='normal',activation='relu'))
+
+    model = custom_model(model_layers)
+
+    callback=tf.keras.callbacks.ModelCheckpoint(filepath='./checkpoints/{}}.h5'.format(model_name), monitor='mean_squared_error', verbose=0, save_best_only=True,
+                save_weights_only=False, mode='auto', save_freq='epoch')
+
+    model.fit(X_train, y_train, epochs = epochs, batch_size = batch_size, callbacks=[callback])
+
+    y_pred = model.predict(X_test)
+    if is_rnn:
+        y_pred = sc.inverse_transform(y_pred)
+
+        st.markdown("*Custom Model*")
+        fig, ax = plt.subplots()
+        plt.figure(figsize=(20,10))
+        plt.plot(target_set_test, color = 'green', label = 'Real Stock')
+        plt.plot(y_pred, color = 'red', label = 'Predicted Stock Price')
+        plt.title('Stock Price Prediction')
+        plt.xlabel('Trading Day')
+        plt.ylabel('Stock Price')
+        plt.legend()
+        plt.show()
+
+        st.pyplot(plt.gcf())
+    else:
+
+        st.markdown("*Custom Model*")
+
+        fig, ax = plt.subplots()
+        plt.figure(figsize=(20,10))
+        plt.plot(y_test[:32], color = 'green', label = 'Real Stock')
+        plt.plot(y_pred[:32], color = 'red', label = 'Predicted Stock Price')
+        plt.title('Stock Price Prediction')
+        plt.xlabel('Trading Day')
+        plt.ylabel('Stock Price')
+        plt.legend()
+        plt.show()
+
+        st.pyplot(plt.gcf())
+
+    return y_test, y_pred
+    
 def generate_RNN_data(train_set, train_set_scaled, target_set_scaled, timesteps):
     X_train = []
     y_train = []
@@ -71,12 +157,6 @@ def generate_RNN_model(feature_df, epochs, already_trained, target_set_test, pre
 
         testing_set_scaled = sc.fit_transform(test_set)
         target_test_set_scaled = sc.fit_transform(target_set_test)
-
-        X_test = []
-        y_test = []
-        for i in range(50,len(test_set)):
-            X_test.append(testing_set_scaled[i-50:i,:])
-            y_test.append(target_test_set_scaled[i,:])
         
         X_test, y_test = generate_RNN_data(test_set, testing_set_scaled, target_test_set_scaled, 50)
 
