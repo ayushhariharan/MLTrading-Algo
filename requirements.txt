@@ -1,6 +1,11 @@
-nltk
 streamlit
-sklearn
-watchdog
+datetime
+pandas
 bs4
+requests
+pandas-datareader
+matplotlib
+mplfinance
 tensorflow
+sklearn
+yfinance
