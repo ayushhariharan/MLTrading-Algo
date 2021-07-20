@@ -20,4 +20,21 @@ A simple web application to visualize stock prediction algorithms on the S&P 500
 
 4. Choose an Appropriate Model from Dropdown and Specify the Number of Training Epochs [other parameters are default]. 
 
-5. Press Train Model to Generate/Save Model Checkpoint File and view comparison between predicted values and actual values.
+5. Press "Train Model" to Generate/Save Model Checkpoint File and view comparison between predicted values and actual values.
+
+### Creating a Custom Model
+
+1. Select "Custom Model" from the Dropdown Menu 
+
+2. Specify the Name of the Model. This name will be used when saving the model details.
+
+3. Specify whether the model is an RNN model or a Linear Model (default is linear).
+
+4. Specify the Number of Total Layers in the Custom Model [either Dense, Dropout, BatchNormalization, or LSTM Layers]
+
+5. For each Layer Specify the Following Characteristics:
+    - Dense Layer -- The units for the layer and the activation function. Kernal initializer is 'normal'
+    - Dropout Layer -- The dropout rate for the layer (be specific)
+    - LSTM Layer -- The number of units in the LSTM Layer
+
+6. Click "Train Model" to Generate and Save Model Checkpoint File while Viewing Model Performance
