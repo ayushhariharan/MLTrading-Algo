@@ -83,7 +83,10 @@ def fetch_data(num_count, not_first):
             
         else:
             df = pd.read_csv('stock_details/{}.csv'.format(ticker))
-            last_date = df.iloc[-1]['Date']
+            if (df.shape[0] <= 0):
+                last_date = 'None'
+            else:
+                last_date = df.iloc[-1]['Date']
             if not last_date == str(end_date):
                 try:
                     df = web.get_data_yahoo(ticker, start_date, end_date)
@@ -162,7 +165,7 @@ def generate_features(selected_stock, visualizations):
 
         st.markdown('*Price Flux Plot*')
         fig2, ax2 = plt.subplots()
-        our_df.plot(kind='line', y = 'Increase_in_adj_close', ax = ax2)
+        df.plot(kind='line', y = 'Increase_in_adj_close', ax = ax2)
         st.pyplot(fig2)
 
     feature_df = df.join(main_df,how='outer')
