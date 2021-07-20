@@ -12,9 +12,10 @@ st.sidebar.title("Stock Market Prediction with Machine Learning")
 
 
 session_state = SessionState.get(fetch_data=False,predict=False, feature=False, 
-    model_gen=False, first_fetch=False, y_pred_lin = [], y_test_lin = [])
+    model_gen=False, first_fetch=False, y_pred_lin = [], y_test_lin = [], layers = [])
 
-session_state2 = SessionState.get(y_test_rnn = [], y_pred_rnn = [])
+ss2 = SessionState.get(layers = [], num_layers = 0)
+
 tickers = save_tickers()
 count = st.sidebar.selectbox(
             "How many Stocks to Consider?", (200, 300, 400, 500))
@@ -41,10 +42,49 @@ if session_state.fetch_data:
         st.write("*Important Stock Features*")
         st.write(features.head())
 
-        models = st.sidebar.multiselect("Select Models", ["Linear Regression", "RNN"])
-        epochs = st.sidebar.number_input('Number of Epochs')
-        already_trained = st.sidebar.checkbox("Already Trained?")
-        
+        models = st.sidebar.selectbox("Select Models", ["Linear Regression", "RNN", "Custom Model"])
+        st.sidebar.subheader("Model Architecture")
+
+        if "Custom Model" in models:
+            ss2.layers = []
+            model_name = st.sidebar.text_input("Model Name")
+            is_rnn = st.sidebar.checkbox("RNN Model?")
+
+            layer_types = ["Dense", "Dropout", "BatchNormalization"]
+
+            if is_rnn:
+                layer_types.append("LSTM")
+
+            ss2.num_layers = st.sidebar.number_input("Number of Layers")
+
+            st.sidebar.subheader("Model Layers")
+
+            if len(ss2.layers) < ss2.num_layers:
+                layer_type = st.sidebar.selectbox("Layer Type?", layer_types)
+
+                if layer_type == "Dense":
+                    activation = st.sidebar.selectbox("Activation Function", ['relu', 'tanh', 'linear'])
+                    units = st.sidebar.number_input("Number of Units")
+                    layer = Dense(units, activation=activation, kernel_initializer='normal')
+                if layer_type == "Dropout":
+                    percentage = st.sidebar.number_input("Dropout Rate")
+                    layer = Dropout(percentage)
+                if layer_type == "BatchNormalization":
+                    layer = BatchNormalization()
+                if layer_type == "LSTM":
+                    units = st.sidebar.number_input("Number of Units")
+                    layer = LSTM(units = units)
+
+                if st.sidebar.button("Add Layer"):
+                    ss2.layers.append(layer)
+            else:
+                epochs = st.sidebar.number_input('Number of Epochs')
+        else:
+            already_trained = st.sidebar.checkbox("Already Trained?")
+            epochs = st.sidebar.number_input('Number of Epochs')
+     
+        st.write(ss2.layers)
+
         if st.sidebar.button("Train Model", key = "model"):
             session_state.model_gen = True
 

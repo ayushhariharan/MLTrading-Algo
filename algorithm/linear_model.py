@@ -30,6 +30,16 @@ from tensorflow.keras.layers import Dense
 from tensorflow.keras.layers import LSTM
 from tensorflow.keras.layers import Dropout
 
+def generate_RNN_data(train_set, train_set_scaled, target_set_scaled, timesteps):
+    X_train = []
+    y_train = []
+    for i in range(timesteps,len(train_set)):
+        X_train.append(train_set_scaled[i-timesteps:i,:])
+        y_train.append(target_set_scaled[i,:])
+        
+    return np.array(X_train), np.array(y_train)
+
+
 def generate_RNN_model(feature_df, epochs, already_trained, target_set_test, predicted_stock_price):
     if len(predicted_stock_price) == 0:
         df_train, df_test = split_data_RNN(feature_df)
@@ -42,14 +52,8 @@ def generate_RNN_model(feature_df, epochs, already_trained, target_set_test, pre
 
         training_set_scaled = sc.fit_transform(train_set)
         target_set_scaled = sc.fit_transform(target_set)
-
-        X_train = []
-        y_train = []
-        for i in range(50,len(train_set)):
-            X_train.append(training_set_scaled[i-50:i,:])
-            y_train.append(target_set_scaled[i,:])
         
-        X_train, y_train = np.array(X_train), np.array(y_train)
+        X_train, y_train = generate_RNN_data(train_set, training_set_scaled, target_set_scaled, 50)
 
         model = rnn_model(X_train.shape[1])
 
@@ -74,7 +78,7 @@ def generate_RNN_model(feature_df, epochs, already_trained, target_set_test, pre
             X_test.append(testing_set_scaled[i-50:i,:])
             y_test.append(target_test_set_scaled[i,:])
         
-        X_test, y_test = np.array(X_test), np.array(y_test)
+        X_test, y_test = generate_RNN_data(test_set, testing_set_scaled, target_test_set_scaled, 50)
 
         predicted_stock_price = model.predict(X_test)
         predicted_stock_price = sc.inverse_transform(predicted_stock_price)
@@ -102,7 +106,7 @@ def generate_linear_model(feature_df, epochs, already_trained, y_pred, y_test):
         X_train, X_test, y_train, y_test = split_data_linear(feature_df)
         regressor = KerasRegressor(build_fn=linear_model, batch_size=16,epochs=epochs)
         if already_trained:
-            regressor.load_weights('checkpoints/Regressor_model.h5')  
+            regressor.model = tf.keras.models.load_model('checkpoints/Regressor_model.h5')  
         else:
             callback = tf.keras.callbacks.ModelCheckpoint(filepath='checkpoints/Regressor_model.h5', monitor='mean_absolute_error',  
                     verbose=0, save_best_only=True, save_weights_only=False, mode='auto')
@@ -142,7 +146,7 @@ def rnn_model(LSTM_rows):
 
 def linear_model():
     mod=Sequential()
-    mod.add(Dense(32, kernel_initializer='normal',input_dim = 200, activation='relu'))
+    mod.add(Dense(32, kernel_initializer='normal',input_dim = 202, activation='relu'))
     mod.add(Dense(64, kernel_initializer='normal',activation='relu'))
     mod.add(Dense(128, kernel_initializer='normal',activation='relu'))
     mod.add(Dense(256, kernel_initializer='normal',activation='relu'))
