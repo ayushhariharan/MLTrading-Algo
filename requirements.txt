@@ -5,7 +5,7 @@ bs4
 requests
 pandas-datareader
 matplotlib
-mplfinance
+mpl_finance
 tensorflow
 sklearn
 yfinance
